@@ -123,7 +123,7 @@ const translations = {
     example_fingerprint: 'مثال: SH001',
     
     // Request Status
-    pending: 'در انتظار تحویل',
+    pending: 'در انتظار',
     active: 'در حال استفاده',
     completed: 'تکمیل شده',
     deleted: 'حذف شده',
@@ -197,8 +197,8 @@ const translations = {
     
     // Filter
     filter: 'فیلتر',
-    filter_by_status: 'فیلتر بر اساس وضعیت',
-    filter_by_department: 'فیلتر بر اساس دیپارتمنت',
+    filter_by_status: 'فیلتر بر اساس وضعیت:',
+    filter_by_department: 'فیلتر بر اساس دیپارتمنت:',
     
     // Account
     username: 'نام کاربری',
