@@ -1034,7 +1034,7 @@ const translations = {
     example_plate: 'مثال: TS-01',
     motorcycle_department: 'څانګه',
     example_department: 'مثال: پاور',
-    motorcycle_id: 'پیژند',
+    motorcycle_id: 'ID',
     chassis_number: 'شاسی نمبر',
     engine_number: 'انجین نمبر',
     gps: 'جي پی ایس',
@@ -1067,7 +1067,7 @@ const translations = {
     // Employee Modal
     add_employee: 'نوی کارکوونکی اضافه کړئ',
     employee_name: 'کامل نوم',
-    employee_id: 'پیژند',
+    employee_id: 'ID',
     employee_fingerprint: 'د ګوت نښه پیژند',
     example_employee_name: 'مثال: شهاب حمیدي',
     example_fingerprint: 'مثال: SH001',
