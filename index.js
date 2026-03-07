@@ -46,12 +46,6 @@ let currentCustomDays = 0;
 let currentIntervalDisplay = 'هیچکدام';
 
 async function syncAllData() {
-  // Skip sync if locked (during critical updates)
-  if (syncLock) {
-    console.log('Sync skipped - lock is active');
-    return;
-  }
-  
   try {
     console.log('Starting full data sync...');
     await syncEmployeesWithGoogleSheets(allData);
@@ -494,16 +488,6 @@ const passwords = {
 };
 const dataHandler = {
   onDataChanged(data) {
-    // Skip re-render if sync is locked (during critical updates like markAsExit/markAsEntry)
-    // The calling function will handle the UI update itself
-    if (syncLock) {
-      console.log('dataHandler.onDataChanged skipped - syncLock is active');
-      allData = data;
-      currentRecordCount = data.length;
-      updateDepartments();
-      return;
-    }
-    
     allData = data;
     currentRecordCount = data.length;
     updateDepartments();
@@ -2564,10 +2548,6 @@ async function markAsExit(requestId) {
   const request = allData.find(d => d.__backendId === requestId);
   if (!request) return;
 
-  // Lock sync to prevent duplicate entries during update
-  syncLock = true;
-  recentlyUpdatedIds.add(requestId);
-
   const now = new Date();
   const exitTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
 
@@ -2583,24 +2563,19 @@ async function markAsExit(requestId) {
     allData[localIndex] = { ...allData[localIndex], exitTime: exitTime, status: 'active' };
     await saveData(allData);
   }
+  
+  // Update UI immediately with local data
+  updateCurrentPage();
 
   const result = await window.dataSdk.update(updatedRequest);
   if (result.isOk) {
     showToast('خروج با موفقیت ثبت شد', '✅');
-    // Update UI immediately with local data
+    // Immediately sync requests from Google Sheets to ensure data consistency
+    await syncRequestsWithGoogleSheets(allData);
+    // Update UI again with synced data
     updateCurrentPage();
-    // Keep lock for 15 seconds to ensure Google Sheets has propagated the change
-    setTimeout(() => {
-      syncLock = false;
-    }, 15000);
-    // Keep in recentlyUpdatedIds for 20 seconds to prevent overwriting during sync
-    setTimeout(() => {
-      recentlyUpdatedIds.delete(requestId);
-    }, 20000);
   } else {
     showToast('خطا در ثبت خروج', '❌');
-    syncLock = false;
-    recentlyUpdatedIds.delete(requestId);
   }
 }
 
@@ -2609,10 +2584,6 @@ async function markAsExit(requestId) {
 async function markAsEntry(requestId) {
   const request = allData.find(d => d.__backendId === requestId);
   if (!request) return;
-
-  // Lock sync to prevent duplicate entries during update
-  syncLock = true;
-  recentlyUpdatedIds.add(requestId);
 
   const now = new Date();
   const entryTime = now.toLocaleTimeString('en-US', {
@@ -2636,26 +2607,21 @@ async function markAsEntry(requestId) {
     allData[localIndex] = { ...allData[localIndex], entryTime: entryTime, usageTime: usageTime, status: 'completed' };
     await saveData(allData);
   }
+  
+  // Update UI immediately with local data
+  updateCurrentPage();
 
   const result = await window.dataSdk.update(updatedRequest);
 
   if (result.isOk) {
     await updateMotorcycleUsageAfterCompletion(updatedRequest);
     showToast('ورود با موفقیت ثبت شد', '✅');
-    // Update UI immediately with local data
+    // Immediately sync requests from Google Sheets to ensure data consistency
+    await syncRequestsWithGoogleSheets(allData);
+    // Update UI again with synced data
     updateCurrentPage();
-    // Keep lock for 15 seconds to ensure Google Sheets has propagated the change
-    setTimeout(() => {
-      syncLock = false;
-    }, 15000);
-    // Keep in recentlyUpdatedIds for 20 seconds to prevent overwriting during sync
-    setTimeout(() => {
-      recentlyUpdatedIds.delete(requestId);
-    }, 20000);
   } else {
     showToast('خطا در ثبت ورود', '❌');
-    syncLock = false;
-    recentlyUpdatedIds.delete(requestId);
   }
 }
 
@@ -3434,12 +3400,6 @@ async function syncEmployeesWithGoogleSheets(allDataRef) {
 
 async function syncRequestsWithGoogleSheets(allDataRef) {
   try {
-    // Skip sync if locked (during critical updates)
-    if (syncLock) {
-      console.log('Request sync skipped - lock is active');
-      return false;
-    }
-    
     const result = await callGoogleSheets('readAll', 'request');
     if (result.success) {
       let gsRequests = result.data
